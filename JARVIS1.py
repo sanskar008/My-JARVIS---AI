@@ -1,116 +1,120 @@
 import sys
-import json
 import os
-import webbrowser
+import time
 import pyttsx3
-import pyautogui
-import pywhatkit
-import psutil
 import speech_recognition as sr
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QTextEdit, QMessageBox
+import webbrowser
+import pywhatkit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt6.QtGui import QPainter, QColor, QFont, QPen
+from PyQt6.QtCore import Qt, QTimer, QUrl
+from PyQt6.QtMultimedia import QSoundEffect
 
-# Initialize TTS engine
+# Text-to-speech engine
 engine = pyttsx3.init()
-
-# Load contacts
-CONTACTS_FILE = "contacts.json"
-if not os.path.exists(CONTACTS_FILE):
-    with open(CONTACTS_FILE, 'w') as f:
-        json.dump({"John": "+911234567890", "Alice": "+919876543210"}, f)
-
-with open(CONTACTS_FILE, 'r') as f:
-    contacts = json.load(f)
 
 def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-def listen_command():
-    recognizer = sr.Recognizer()
+# Voice recognition
+def take_command():
+    r = sr.Recognizer()
     with sr.Microphone() as source:
-        speak("Listening...")
-        audio = recognizer.listen(source)
-
-    try:
-        command = recognizer.recognize_google(audio)
-        speak(f"You said: {command}")
-        return command.lower()
-    except sr.UnknownValueError:
-        speak("Sorry, I didn't catch that.")
-        return ""
-
-def execute_command(command):
-    if 'open gmail' in command:
-        speak("Opening Gmail.")
-        webbrowser.open("https://mail.google.com")
-    
-    elif 'open youtube' in command:
-        speak("Opening YouTube.")
-        webbrowser.open("https://youtube.com")
-    
-    elif 'shutdown' in command:
-        speak("Shutting down system.")
-        os.system("shutdown /s /t 1")
-    
-    elif 'battery' in command:
-        battery = psutil.sensors_battery()
-        speak(f"Battery is at {battery.percent} percent")
-    
-    elif 'send whatsapp message' in command:
+        print("Listening...")
+        audio = r.listen(source)
         try:
-            contact_name = command.split("to ")[-1]
-            if contact_name in contacts:
-                speak(f"What message should I send to {contact_name}?")
-                msg = listen_command()
-                pywhatkit.sendwhatmsg_instantly(contacts[contact_name], msg)
-                speak("Message sent successfully.")
-            else:
-                speak("Contact not found.")
-        except Exception as e:
-            speak("There was an error sending the message.")
-    else:
-        speak("I don't understand that command.")
+            query = r.recognize_google(audio)
+            print(f"User said: {query}")
+            speak(f"You said: {query}")
+            return query.lower()
+        except sr.UnknownValueError:
+            speak("Sorry, I did not understand that.")
+            return ""
+        except sr.RequestError:
+            speak("Speech service is down.")
+            return ""
 
-# GUI
-class JarvisGUI(QWidget):
+# GUI Class
+class JarvisHUD(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Jarvis AI - Voice Assistant")
-        self.setGeometry(300, 300, 400, 300)
-        self.initUI()
+        self.setWindowTitle("JARVIS AI Assistant")
+        self.setGeometry(100, 100, 800, 600)
+        self.setStyleSheet("background-color: black;")
+        self.label = QLabel("J.A.R.V.I.S", self)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setGeometry(0, 50, 800, 100)
+        self.label.setFont(QFont("Orbitron", 40, QFont.Weight.Bold))
+        self.label.setStyleSheet("color: cyan;")
 
-    def initUI(self):
-        layout = QVBoxLayout()
+        self.status_label = QLabel("Status: Listening...", self)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setGeometry(0, 500, 800, 50)
+        self.status_label.setFont(QFont("Orbitron", 14))
+        self.status_label.setStyleSheet("color: white;")
 
-        self.label = QLabel("Jarvis is Ready")
-        self.output = QTextEdit()
-        self.output.setReadOnly(True)
-        btn_listen = QPushButton("🎙️ Give Command")
-        btn_contacts = QPushButton("📋 View Contacts")
+        # Animation timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update)
+        self.timer.start(100)
 
-        btn_listen.clicked.connect(self.handle_command)
-        btn_contacts.clicked.connect(self.show_contacts)
+        # Play startup sound
+        self.beep = QSoundEffect()
+        self.beep.setSource(QUrl.fromLocalFile(os.path.abspath("beep.wav")))
+        self.beep.setVolume(0.25)
+        self.beep.play()
 
-        layout.addWidget(self.label)
-        layout.addWidget(self.output)
-        layout.addWidget(btn_listen)
-        layout.addWidget(btn_contacts)
+        # Start listening in background
+        QTimer.singleShot(3000, self.process_voice_command)
 
-        self.setLayout(layout)
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        center_x = self.width() / 2
+        center_y = self.height() / 2
+        pen = QPen(QColor("cyan"))
+        pen.setWidth(2)
+        painter.setPen(pen)
 
-    def handle_command(self):
-        command = listen_command()
-        if command:
-            self.output.append(f"👤 User: {command}")
-            execute_command(command)
+        # Outer Rings
+        painter.drawEllipse(int(center_x - 200), int(center_y - 200), 400, 400)
+        painter.drawEllipse(int(center_x - 150), int(center_y - 150), 300, 300)
+        painter.drawEllipse(int(center_x - 100), int(center_y - 100), 200, 200)
 
-    def show_contacts(self):
-        contact_list = "\n".join([f"{name}: {number}" for name, number in contacts.items()])
-        QMessageBox.information(self, "Saved Contacts", contact_list)
+        # Inner glow
+        painter.setBrush(QColor(0, 255, 255, 50))
+        painter.drawEllipse(int(center_x - 10), int(center_y - 10), 20, 20)
+
+    def process_voice_command(self):
+        while True:
+            query = take_command()
+
+            if "open youtube" in query:
+                self.status_label.setText("Status: Opening YouTube")
+                speak("Opening YouTube")
+                webbrowser.open("https://www.youtube.com")
+            elif "open gmail" in query:
+                self.status_label.setText("Status: Opening Gmail")
+                speak("Opening Gmail")
+                webbrowser.open("https://mail.google.com")
+            elif "send message to" in query:
+                name = query.split("send message to")[-1].strip()
+                speak(f"Preparing WhatsApp for {name}. What should I say?")
+                message = take_command()
+                # Make sure you have saved contact names in WhatsApp
+                pywhatkit.sendwhatmsg_instantly(f"{name}", message)
+                self.status_label.setText(f"Status: Sent message to {name}")
+                speak(f"Message sent to {name}")
+            elif "exit" in query or "shutdown" in query:
+                self.status_label.setText("Status: Shutting Down")
+                speak("Shutting down, goodbye")
+                sys.exit()
+            else:
+                self.status_label.setText("Status: Listening...")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    gui = JarvisGUI()
-    gui.show()
-    speak("Jarvis AI Activated!")
+    hud = JarvisHUD()
+    hud.show()
+    speak("Initializing JARVIS cinematic interface.")
     sys.exit(app.exec())
