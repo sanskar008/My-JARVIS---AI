@@ -1,0 +1,126 @@
+# JARVIS AI Assistant - Usage Guide
+
+Welcome to JARVIS, your Iron Man-inspired AI assistant! Below is a list of functionalities and voice commands you can use to interact with JARVIS. Speak clearly and wait for the "Listening..." prompt in the console.
+
+## General Instructions
+
+- Start commands with a natural phrase (e.g., "JARVIS, open YouTube" or just "open YouTube").
+- For commands requiring additional input (e.g., reminders, emails), JARVIS will prompt you for more details.
+- Ensure sound files (hum.wav, ui.wav, startup.wav) and nircmd.exe are in the project directory.
+- Replace placeholders like API keys and email credentials in the code before running.
+
+## Available Functionalities and Commands
+
+### 1. System Control
+
+- Shut Down Computer: "Shut down computer"
+  - Shuts down your PC immediately.
+- Restart Computer: "Restart computer"
+  - Restarts your PC.
+- Log Off: "Log off"
+  - Logs off the current user session.
+- Mute Volume: "Mute"
+  - Mutes system sound.
+- Increase Volume: "Volume up"
+  - Increases volume (requires nircmd.exe).
+- Decrease Volume: "Volume down"
+  - Decreases volume (requires nircmd.exe).
+- Take Screenshot: "Screenshot"
+  - Saves a screenshot as "screenshot.png" in the project directory.
+
+### 2. File Management
+
+- Open File: "Open file [file_path]"
+  - Example: "Open file C:\\Users\\Sanskar\\Documents\\test.txt"
+  - Opens the specified file if it exists.
+- Create Folder: "Create folder [folder_name]"
+  - Example: "Create folder MyNewFolder"
+  - Creates a folder in the current directory.
+- Search File: "Search file [file_name]"
+  - Example: "Search file test.txt"
+  - Searches for the file on the C: drive and reports its location.
+
+### 3. Web and Information
+
+- Google Search: "Search Google [query]"
+  - Example: "Search Google Python tutorial"
+  - Opens Google with the search results.
+- Wikipedia Search: "Wikipedia [topic]"
+  - Example: "Wikipedia Artificial Intelligence"
+  - Reads a brief summary from Wikipedia.
+- Weather Update: "Weather [city]" or just "Weather"
+  - Example: "Weather London"
+  - Provides current temperature and conditions (defaults to New York if no city specified). Requires an OpenWeatherMap API key.
+
+### 4. Productivity
+
+- Set Reminder: "Set reminder"
+  - Prompts for the reminder text and time in minutes (e.g., "5" for 5 minutes).
+  - Example: "Set reminder" → "Call Mom" → "5"
+- Open Notepad: "Open Notepad"
+  - Launches Notepad.
+- Send Email: "Send email"
+  - Prompts for recipient, subject, and message. Requires Gmail credentials in the code.
+  - Example: "Send email" → "friend@example.com" → "Meeting" → "See you at 5 PM"
+
+### 5. Entertainment
+
+- Play Music: "Play music"
+  - Plays a random MP3 from "C:\\Users\\Sanskar\\Music" (update path in code if needed).
+- Tell a Joke: "Tell me a joke"
+  - Shares a random joke from a predefined list.
+
+### 6. Advanced Interactions
+
+- Calculate: "Calculate [expression]"
+  - Example: "Calculate 5 + 3 \* 2"
+  - Solves the math expression and displays the result.
+- Translate: "Translate"
+  - Prompts for text and target language.
+  - Example: "Translate" → "Hello" → "Spanish" (Outputs "Hola").
+
+### 7. Web Navigation (Existing)
+
+- Open YouTube: "Open YouTube"
+  - Opens YouTube in your default browser.
+- Open Gmail: "Open Gmail"
+  - Opens Gmail in your default browser.
+- Send WhatsApp Message: "Send message to [phone_number]"
+  - Example: "Send message to +1234567890"
+  - Prompts for the message and sends it via WhatsApp.
+
+### 8. Appearance and Exit
+
+- Change Theme: "Change theme [color]"
+  - Options: "red", "green", "purple", "cyan"
+  - Example: "Change theme purple"
+  - Switches the HUD color scheme.
+- Exit: "Exit" or "Shutdown"
+  - Closes JARVIS with a shutdown animation.
+
+### 9. Custom Commands
+
+- Add Custom Command: "Add command"
+  - Prompts for a phrase and action to associate with it.
+  - Example: "Add command" → "say hello" → "Hello, world!"
+  - Use the phrase later: "Say hello" → JARVIS says "Hello, world!"
+- Use Custom Command: "[custom_phrase]"
+  - Executes the action tied to the custom phrase.
+
+## Setup Requirements
+
+- Libraries: Install via pip:
+  - pip install pyttsx3 speechrecognition pywhatkit psutil requests wikipedia translate Pillow
+- Nircmd: Download nircmd.exe from https://www.nirsoft.net/utils/nircmd.html and place it in the project folder.
+- Weather API: Get a free API key from https://openweathermap.org/ and replace "YOUR_OPENWEATHERMAP_API_KEY" in the code.
+- Email: Update "your_email@gmail.com" and "your_password" in the code with your Gmail credentials (enable "Less secure app access" or use an App Password).
+- Sound Files: Place hum.wav, ui.wav, and startup.wav in the project directory (download from Freesound or Zapsplat).
+- Music Directory: Update "C:\\Users\\Sanskar\\Music" in the code to your music folder path.
+
+## Tips
+
+- Speak clearly and wait for JARVIS to respond.
+- Test commands one at a time to ensure they work as expected.
+- Customize the code further by adding more commands or refining existing ones!
+
+Enjoy your JARVIS experience!

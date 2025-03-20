@@ -6,16 +6,26 @@ import speech_recognition as sr
 import webbrowser
 import pywhatkit
 import psutil
+import shutil
+import requests
+import datetime
+import wikipedia
+import smtplib
+import random
+import math
+import subprocess
+import winsound
+import winshell
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QGraphicsDropShadowEffect
 from PyQt6.QtGui import QPainter, QColor, QFont, QPen, QBrush, QLinearGradient, QPainterPath
 from PyQt6.QtCore import Qt, QTimer, QUrl, QPropertyAnimation, QRectF, QPointF, QThread, pyqtSignal
 from PyQt6.QtMultimedia import QSoundEffect
-import random
-import math
+from translate import Translator
+from PIL import ImageGrab
 
 # Text-to-speech engine
 engine = pyttsx3.init()
-engine.setProperty('voice', r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0')  # Male voice, raw string
+engine.setProperty('voice', r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0')
 
 def speak(text):
     engine.say(text)
@@ -73,7 +83,7 @@ class HoloPanel(QWidget):
         shadow.setBlurRadius(15)
         shadow.setColor(QColor(0, 255, 255, 150))
         shadow.setOffset(0, 0)
-        self.setGraphicsEffect(shadow)  # Apply shadow to the panel
+        self.setGraphicsEffect(shadow)
         self.anim = QPropertyAnimation(self, b"windowOpacity")
         self.anim.setDuration(2000)
         self.anim.setStartValue(0.0)
@@ -109,7 +119,7 @@ class JarvisHUD(QMainWindow):
         title_shadow.setBlurRadius(20)
         title_shadow.setColor(QColor(0, 255, 255, 200))
         title_shadow.setOffset(0, 0)
-        self.title.setGraphicsEffect(title_shadow)  # Apply shadow to title
+        self.title.setGraphicsEffect(title_shadow)
 
         # Status Label
         self.status_label = QLabel("INITIALIZING...", self)
@@ -121,7 +131,7 @@ class JarvisHUD(QMainWindow):
         status_shadow.setBlurRadius(10)
         status_shadow.setColor(QColor(0, 255, 255, 150))
         status_shadow.setOffset(0, 0)
-        self.status_label.setGraphicsEffect(status_shadow)  # Apply shadow to status
+        self.status_label.setGraphicsEffect(status_shadow)
 
         # Caption Label
         self.caption_label = QLabel("", self)
@@ -133,7 +143,7 @@ class JarvisHUD(QMainWindow):
         caption_shadow.setBlurRadius(10)
         caption_shadow.setColor(QColor(0, 255, 255, 150))
         caption_shadow.setOffset(0, 0)
-        self.caption_label.setGraphicsEffect(caption_shadow)  # Apply shadow to caption
+        self.caption_label.setGraphicsEffect(caption_shadow)
 
         # Dynamic Panels
         self.cpu_panel = QWidget(self)
@@ -147,7 +157,7 @@ class JarvisHUD(QMainWindow):
         cpu_shadow.setBlurRadius(15)
         cpu_shadow.setColor(QColor(0, 255, 255, 150))
         cpu_shadow.setOffset(0, 0)
-        self.cpu_panel.setGraphicsEffect(cpu_shadow)  # Apply shadow to CPU panel
+        self.cpu_panel.setGraphicsEffect(cpu_shadow)
 
         self.time_panel = QWidget(self)
         self.time_panel.setGeometry(50, 270, 200, 100)
@@ -160,7 +170,7 @@ class JarvisHUD(QMainWindow):
         time_shadow.setBlurRadius(15)
         time_shadow.setColor(QColor(0, 255, 255, 150))
         time_shadow.setOffset(0, 0)
-        self.time_panel.setGraphicsEffect(time_shadow)  # Apply shadow to time panel
+        self.time_panel.setGraphicsEffect(time_shadow)
 
         self.history_panel = QWidget(self)
         self.history_panel.setGeometry(950, 150, 200, 200)
@@ -173,7 +183,7 @@ class JarvisHUD(QMainWindow):
         history_shadow.setBlurRadius(15)
         history_shadow.setColor(QColor(0, 255, 255, 150))
         history_shadow.setOffset(0, 0)
-        self.history_panel.setGraphicsEffect(history_shadow)  # Apply shadow to history panel
+        self.history_panel.setGraphicsEffect(history_shadow)
 
         # Animation variables
         self.rotation_angle = 0
@@ -185,8 +195,9 @@ class JarvisHUD(QMainWindow):
         self.particles = [{'x': 0, 'y': 0, 'angle': random.uniform(0, 360), 'speed': random.uniform(1, 3), 'trail': []} for _ in range(20)]
         self.sparks = []
         self.ripple_rings = []
-        self.color_mode = "cyan"  # cyan, red, green, purple
+        self.color_mode = "cyan"
         self.hex_angle = 0
+        self.custom_commands = {}
 
         # Sounds
         self.hum = QSoundEffect()
@@ -211,18 +222,15 @@ class JarvisHUD(QMainWindow):
         self.voice_worker = VoiceWorker()
         self.voice_worker.status_update.connect(self.update_status)
         self.voice_worker.command_detected.connect(self.handle_command)
-        QTimer.singleShot(5000, self.voice_worker.start)  # Start after boot
+        QTimer.singleShot(5000, self.voice_worker.start)
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         center_x, center_y = self.width() / 2, self.height() / 2
-        colors = {
-            "cyan": (0, 255, 255), "red": (255, 50, 50), "green": (50, 255, 50), "purple": (200, 0, 255)
-        }
+        colors = {"cyan": (0, 255, 255), "red": (255, 50, 50), "green": (50, 255, 50), "purple": (200, 0, 255)}
         base_color = colors[self.color_mode]
 
-        # Boot Sequence
         if self.booting:
             if self.boot_phase < 50:
                 painter.setBrush(QColor(0, 0, 0, 200))
@@ -245,7 +253,6 @@ class JarvisHUD(QMainWindow):
                 self.status_label.setText("SYSTEM ONLINE")
             return
 
-        # Background Holographic Noise
         painter.setPen(Qt.PenStyle.NoPen)
         for _ in range(50):
             x = random.randint(0, self.width())
@@ -253,7 +260,6 @@ class JarvisHUD(QMainWindow):
             painter.setBrush(QColor(*base_color, random.randint(5, 20)))
             painter.drawEllipse(x, y, 2, 2)
 
-        # Hex Grid Overlay
         painter.save()
         painter.translate(center_x, center_y)
         painter.rotate(self.hex_angle)
@@ -266,7 +272,6 @@ class JarvisHUD(QMainWindow):
         painter.restore()
         self.hex_angle = (self.hex_angle + 1) % 360
 
-        # Arc Reactor Core
         painter.save()
         painter.translate(center_x, center_y)
         painter.rotate(self.rotation_angle)
@@ -280,7 +285,6 @@ class JarvisHUD(QMainWindow):
             painter.drawEllipse(QPointF(0, 0), radius, radius)
         painter.restore()
 
-        # Radar Sweep
         painter.save()
         painter.translate(center_x, center_y)
         painter.rotate(self.radar_angle)
@@ -289,7 +293,6 @@ class JarvisHUD(QMainWindow):
         painter.restore()
         self.radar_angle = (self.radar_angle + 3) % 360
 
-        # Particle Effects with Trails
         painter.setPen(Qt.PenStyle.NoPen)
         for particle in self.particles:
             particle['angle'] += particle['speed']
@@ -303,7 +306,6 @@ class JarvisHUD(QMainWindow):
                 painter.drawEllipse(int(tx), int(ty), 5 - i, 5 - i)
             particle['x'], particle['y'] = x, y
 
-        # Sparks
         for spark in self.sparks[:]:
             spark['life'] -= 1
             if spark['life'] <= 0:
@@ -315,7 +317,6 @@ class JarvisHUD(QMainWindow):
             painter.drawEllipse(int(x), int(y), 5, 5)
             spark['x'], spark['y'] = x, y
 
-        # Core Pulse with Bloom
         glow_size = 50 + math.sin(self.pulse_factor * math.pi) * 20
         gradient = QLinearGradient(center_x, center_y - glow_size, center_x, center_y + glow_size)
         gradient.setColorAt(0, QColor(*base_color, 200))
@@ -324,21 +325,18 @@ class JarvisHUD(QMainWindow):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(int(center_x - glow_size / 2), int(center_y - glow_size / 2), int(glow_size), int(glow_size))
 
-        # HUD Grid
         painter.setPen(QPen(QColor(*base_color, 50), 1, Qt.PenStyle.DotLine))
         for x in range(0, self.width(), 50):
             painter.drawLine(x, 100, x, self.height() - 100)
         for y in range(100, self.height() - 100, 50):
             painter.drawLine(0, y, self.width(), y)
 
-        # Scan Line with Sound
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(*base_color, 30))
         painter.drawRect(0, self.scan_line_y, self.width(), 5)
         if self.scan_line_y % 100 == 0:
             self.ui_sound.play()
 
-        # Waveform with Ripple
         if self.listening:
             painter.setPen(QPen(QColor(*base_color, 150), 2))
             path = QPainterPath()
@@ -359,7 +357,6 @@ class JarvisHUD(QMainWindow):
                 painter.setPen(QPen(QColor(*base_color, ring['alpha']), 2))
                 painter.drawEllipse(int(center_x - ring['size'] / 2), int(600 - ring['size'] / 2), int(ring['size']), int(ring['size']))
 
-        # Glowing Title with Lens Flare
         r, g, b = [int(c + 50 * math.sin(self.pulse_factor)) for c in base_color]
         painter.setFont(QFont("Orbitron", 36, QFont.Weight.Bold))
         painter.setPen(QPen(QColor(r, g, b, 100), 3))
@@ -367,9 +364,8 @@ class JarvisHUD(QMainWindow):
         painter.setPen(QPen(QColor(r, g, b, 255), 1))
         painter.drawText(QRectF(0, 20, 1200, 80), Qt.AlignmentFlag.AlignCenter, "J.A.R.V.I.S")
         painter.setBrush(QColor(r, g, b, 50))
-        painter.drawEllipse(600, 40, 20, 20)  # Lens flare
+        painter.drawEllipse(600, 40, 20, 20)
 
-        # Update animations
         self.rotation_angle = (self.rotation_angle + 3) % 360
         self.pulse_factor = (self.pulse_factor + 0.05) % (2 * math.pi)
         self.scan_line_y = (self.scan_line_y + 2) % (self.height() - 100)
@@ -388,6 +384,8 @@ class JarvisHUD(QMainWindow):
         self.ui_sound.play()
         self.caption_label.setText(query.upper())
         self.history_label.setText(self.history_label.text() + f"{query}\n")
+
+        # Existing Commands
         if "open youtube" in query:
             self.status_label.setText("LAUNCHING YOUTUBE")
             HoloPanel(self, "Opening YouTube", 700, 150)
@@ -423,6 +421,150 @@ class JarvisHUD(QMainWindow):
             else:
                 self.color_mode = "cyan"
             speak(f"Switching to {self.color_mode} mode.")
+
+        # System Control
+        elif "shut down computer" in query:
+            speak("Shutting down the computer.")
+            os.system("shutdown /s /t 1")
+        elif "restart computer" in query:
+            speak("Restarting the computer.")
+            os.system("shutdown /r /t 1")
+        elif "log off" in query:
+            speak("Logging off.")
+            os.system("shutdown /l")
+        elif "mute" in query:
+            speak("Muting volume.")
+            winsound.PlaySound(None, winsound.SND_PURGE)
+        elif "volume up" in query:
+            speak("Increasing volume.")
+            subprocess.call(["nircmd.exe", "changesysvolume", "2000"])  # Requires nircmd.exe
+        elif "volume down" in query:
+            speak("Decreasing volume.")
+            subprocess.call(["nircmd.exe", "changesysvolume", "-2000"])
+        elif "screenshot" in query:
+            screenshot = ImageGrab.grab()
+            screenshot.save("screenshot.png")
+            speak("Screenshot saved as screenshot.png")
+            self.status_label.setText("SCREENSHOT SAVED")
+
+        # File Management
+        elif "open file" in query:
+            file_name = query.replace("open file", "").strip()
+            try:
+                os.startfile(file_name)
+                speak(f"Opening {file_name}")
+            except:
+                speak("File not found.")
+        elif "create folder" in query:
+            folder_name = query.replace("create folder", "").strip()
+            os.makedirs(folder_name, exist_ok=True)
+            speak(f"Folder {folder_name} created.")
+        elif "search file" in query:
+            file_name = query.replace("search file", "").strip()
+            for root, _, files in os.walk("C:\\"):
+                if file_name in files:
+                    speak(f"Found {file_name} at {root}")
+                    break
+            else:
+                speak("File not found.")
+
+        # Web and Information
+        elif "search google" in query:
+            search_term = query.replace("search google", "").strip()
+            webbrowser.open(f"https://www.google.com/search?q={search_term}")
+            speak(f"Searching Google for {search_term}")
+        elif "wikipedia" in query:
+            search_term = query.replace("wikipedia", "").strip()
+            try:
+                result = wikipedia.summary(search_term, sentences=2)
+                speak(result)
+                HoloPanel(self, result[:50] + "...", 700, 150)
+            except:
+                speak("Wikipedia search failed.")
+        elif "weather" in query:
+            city = query.replace("weather", "").strip() or "New York"
+            api_key = "YOUR_OPENWEATHERMAP_API_KEY"  # Replace with your API key
+            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+            response = requests.get(url).json()
+            if response.get("main"):
+                temp = response["main"]["temp"]
+                desc = response["weather"][0]["description"]
+                speak(f"{city}: {temp}°C, {desc}")
+                HoloPanel(self, f"{city}: {temp}°C", 700, 150)
+            else:
+                speak("Weather data unavailable.")
+
+        # Productivity
+        elif "set reminder" in query:
+            speak("What should I remind you about?")
+            reminder = take_command()
+            speak("In how many minutes?")
+            minutes = int(take_command())
+            QTimer.singleShot(minutes * 60000, lambda: speak(f"Reminder: {reminder}"))
+            speak(f"Reminder set for {minutes} minutes.")
+        elif "open notepad" in query:
+            speak("Opening Notepad.")
+            os.startfile("notepad.exe")
+        elif "send email" in query:
+            speak("Who should I send the email to?")
+            recipient = take_command()
+            speak("What’s the subject?")
+            subject = take_command()
+            speak("What’s the message?")
+            message = take_command()
+            try:
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login("your_email@gmail.com", "your_password")  # Replace with your credentials
+                    server.sendmail("your_email@gmail.com", recipient, f"Subject: {subject}\n\n{message}")
+                speak("Email sent.")
+            except:
+                speak("Email sending failed.")
+
+        # Entertainment
+        elif "play music" in query:
+            music_dir = "C:\\Users\\Sanskar\\Music"  # Replace with your music directory
+            songs = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
+            if songs:
+                song = random.choice(songs)
+                os.startfile(os.path.join(music_dir, song))
+                speak(f"Playing {song}")
+            else:
+                speak("No music files found.")
+        elif "tell me a joke" in query:
+            jokes = ["Why don’t skeletons fight each other? Because they don’t have the guts.", 
+                     "I told my wife she was drawing her eyebrows too high. She looked surprised."]
+            speak(random.choice(jokes))
+
+        # Advanced Interactions
+        elif "calculate" in query:
+            expression = query.replace("calculate", "").strip()
+            try:
+                result = eval(expression)
+                speak(f"The result is {result}")
+                HoloPanel(self, f"Result: {result}", 700, 150)
+            except:
+                speak("Invalid calculation.")
+        elif "translate" in query:
+            speak("What text to translate?")
+            text = take_command()
+            speak("To which language?")
+            lang = take_command()
+            translator = Translator(to_lang=lang)
+            result = translator.translate(text)
+            speak(f"Translated: {result}")
+            HoloPanel(self, result[:50] + "...", 700, 150)
+
+        # Custom Commands
+        elif "add command" in query:
+            speak("What’s the command phrase?")
+            phrase = take_command()
+            speak("What should I do?")
+            action = take_command()
+            self.custom_commands[phrase] = action
+            speak(f"Command {phrase} added.")
+        elif query in self.custom_commands:
+            speak(self.custom_commands[query])
 
     def closeEvent(self, event):
         self.timer.stop()
